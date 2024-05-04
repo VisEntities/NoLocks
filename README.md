@@ -1,6 +1,6 @@
 This plugin prevents players from placing locks on entities like doors, boxes, tool cupboards, and others specified in the config. It also allows you to block the deployment of either type of lock—key or code lock—individually. separately. Once loaded, the plugin will review all existing locked entities on the server to determine if their locks should be removed.
 
-[Demonstration](https://youtu.be/TfwtpbyXm5M)
+[Demonstration]()
 
 -----------------
 
@@ -19,7 +19,12 @@ This plugin prevents players from placing locks on entities like doors, boxes, t
   "Allow Key Lock Deployment": false,
   "Unlockable Entities": [
     "fridge.deployed",
-    "box.wooden.large"
+    "box.wooden.large",
+    "cupboard.tool.deployed",
+    "wall.frame.garagedoor",
+    "door.hinged.metal",
+    "locker.deployed",
+    "woodbox_deployed"
   ]
 }
 ```
