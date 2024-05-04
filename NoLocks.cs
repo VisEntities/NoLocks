@@ -13,7 +13,7 @@ using UnityEngine;
 namespace Oxide.Plugins
 {
     [Info("No Locks", "VisEntities", "2.0.0")]
-    [Description(" ")]
+    [Description("Blocks the deployment of key and code locks on certain entities.")]
     public class NoLocks : RustPlugin
     {
         #region Fields
@@ -42,7 +42,7 @@ namespace Oxide.Plugins
             public bool AllowKeyLockDeployment { get; set; }
 
             [JsonProperty("Unlockable Entities")]
-            public List<string> UnlockableEntities { get; set; }
+            public List<string> UnlockableEntity { get; set; }
         }
 
         protected override void LoadConfig()
@@ -87,7 +87,7 @@ namespace Oxide.Plugins
                 RemoveLocksOnStartup = false,
                 AllowCodeLockDeployment = false,
                 AllowKeyLockDeployment = false,
-                UnlockableEntities = new List<string>
+                UnlockableEntity = new List<string>
                 {
                     "fridge.deployed",
                     "box.wooden.large"
@@ -140,9 +140,9 @@ namespace Oxide.Plugins
             if (targetEntity == null)
                 return null;
 
-            if (_config.UnlockableEntities.Contains(targetEntity.ShortPrefabName))
+            if (_config.UnlockableEntity.Contains(targetEntity.ShortPrefabName))
             {
-                SendMessage(player, Lang.UnlockableEntities);
+                SendMessage(player, Lang.UnlockableEntity);
                 return true;
             }
 
@@ -179,7 +179,7 @@ namespace Oxide.Plugins
                 if (entity != null)
                 {
                     BaseLock baseLock = GetEntityLock(entity);
-                    if (baseLock != null && _config.UnlockableEntities.Contains(entity.ShortPrefabName))
+                    if (baseLock != null && _config.UnlockableEntity.Contains(entity.ShortPrefabName))
                     {
                         if (entity.OwnerID != 0)
                         {
@@ -280,7 +280,7 @@ namespace Oxide.Plugins
 
         private class Lang
         {
-            public const string UnlockableEntities = "UnlockableEntities";
+            public const string UnlockableEntity = "UnlockableEntity";
             public const string DeployCodeLockBlocked = "DeployCodeLockBlocked";
             public const string DeployKeyLockBlocked = "DeployKeyLockBlocked";
         }
@@ -289,7 +289,7 @@ namespace Oxide.Plugins
         {
             lang.RegisterMessages(new Dictionary<string, string>
             {
-                [Lang.UnlockableEntities] = "Deploying locks on this entity type is blocked.",
+                [Lang.UnlockableEntity] = "Deploying locks on this entity type is blocked.",
                 [Lang.DeployCodeLockBlocked] = "Code locks cannot be deployed on this entity.",
                 [Lang.DeployKeyLockBlocked] = "Key locks cannot be deployed on this entity.",
             }, this, "en");
