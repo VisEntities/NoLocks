@@ -90,7 +90,12 @@ namespace Oxide.Plugins
                 UnlockableEntity = new List<string>
                 {
                     "fridge.deployed",
-                    "box.wooden.large"
+                    "box.wooden.large",
+                    "cupboard.tool.deployed",
+                    "wall.frame.garagedoor",
+                    "door.hinged.metal",
+                    "locker.deployed",
+                    "woodbox_deployed"
                 }
             };
         }
