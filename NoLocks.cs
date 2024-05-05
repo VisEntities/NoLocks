@@ -12,7 +12,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("No Locks", "VisEntities", "2.0.0")]
+    [Info("No Locks", "VisEntities", "3.0.0")]
     [Description("Blocks the deployment of key and code locks on certain entities.")]
     public class NoLocks : RustPlugin
     {
@@ -35,14 +35,20 @@ namespace Oxide.Plugins
             [JsonProperty("Remove Locks On Startup")]
             public bool RemoveLocksOnStartup { get; set; }
 
+            [JsonProperty("Entity Groups")]
+            public List<LockConfig> EntityGroups { get; set; }
+        }
+
+        private class LockConfig
+        {
+            [JsonProperty("Prefab Short Names")]
+            public List<string> PrefabShortNames { get; set; }
+
             [JsonProperty("Allow Code Lock Deployment")]
             public bool AllowCodeLockDeployment { get; set; }
 
             [JsonProperty("Allow Key Lock Deployment")]
             public bool AllowKeyLockDeployment { get; set; }
-
-            [JsonProperty("Unlockable Entities")]
-            public List<string> UnlockableEntity { get; set; }
         }
 
         protected override void LoadConfig()
@@ -85,17 +91,39 @@ namespace Oxide.Plugins
             {
                 Version = Version.ToString(),
                 RemoveLocksOnStartup = false,
-                AllowCodeLockDeployment = false,
-                AllowKeyLockDeployment = false,
-                UnlockableEntity = new List<string>
+                EntityGroups = new List<LockConfig>
                 {
-                    "fridge.deployed",
-                    "box.wooden.large",
-                    "cupboard.tool.deployed",
-                    "wall.frame.garagedoor",
-                    "door.hinged.metal",
-                    "locker.deployed",
-                    "woodbox_deployed"
+                    new LockConfig
+                    {
+                        PrefabShortNames = new List<string>
+                        {
+                            "cupboard.tool.deployed",
+                            "box.wooden.large",
+                            "woodbox_deployed"
+                        },
+                        AllowCodeLockDeployment = false,
+                        AllowKeyLockDeployment = true
+                    },
+                    new LockConfig
+                    {
+                        PrefabShortNames = new List<string>
+                        {
+                            "wall.frame.garagedoor",
+                            "door.hinged.metal"
+                        },
+                        AllowCodeLockDeployment = true,
+                        AllowKeyLockDeployment = false
+                    },
+                    new LockConfig
+                    {
+                        PrefabShortNames = new List<string>
+                        {
+                            "locker.deployed",
+                            "fridge.deployed"
+                        },
+                        AllowCodeLockDeployment = true,
+                        AllowKeyLockDeployment = true
+                    }
                 }
             };
         }
@@ -145,67 +173,91 @@ namespace Oxide.Plugins
             if (targetEntity == null)
                 return null;
 
-            if (_config.UnlockableEntity.Contains(targetEntity.ShortPrefabName))
-            {
-                SendMessage(player, Lang.UnlockableEntity);
-                return true;
-            }
+            LockConfig lockConfig = GetLockConfigForPrefab(targetEntity.ShortPrefabName);
+            if (lockConfig == null)
+                return null;
 
             int itemId = activeItem.info.itemid;
             switch (itemId)
             {
                 case ITEM_ID_CODE_LOCK:
-                    if (!_config.AllowCodeLockDeployment)
                     {
-                SendMessage(player, Lang.DeployCodeLockBlocked);
-                        return true;
+                        if (!lockConfig.AllowCodeLockDeployment)
+                        {
+                            SendMessage(player, Lang.DeployCodeLockBlocked);
+                            return true;
+                        }
+                        break;
                     }
-                    break;
                 case ITEM_ID_KEY_LOCK:
-                    if (!_config.AllowKeyLockDeployment)
                     {
-                        SendMessage(player, Lang.DeployKeyLockBlocked);
-                        return true;
+                        if (!lockConfig.AllowKeyLockDeployment)
+                        {
+                            SendMessage(player, Lang.DeployKeyLockBlocked);
+                            return true;
+                        }
+                        break;
                     }
-                    break;
             }
-
+        
             return null;
         }
 
         #endregion Oxide Hooks
 
-        #region Functions
+        #region Locks Removal
 
         private IEnumerator RemoveLocksCoroutine()
         {
             foreach (BaseEntity entity in BaseNetworkable.serverEntities.OfType<BaseEntity>())
             {
-                if (entity != null)
-                {
-                    BaseLock baseLock = GetEntityLock(entity);
-                    if (baseLock != null && _config.UnlockableEntity.Contains(entity.ShortPrefabName))
-                    {
-                        if (entity.OwnerID != 0)
-                        {
-                            BasePlayer ownerPlayer = FindPlayerById(entity.OwnerID);
-                            if (ownerPlayer != null && PermissionUtil.HasPermission(ownerPlayer, PermissionUtil.BYPASS))
-                            {
+                yield return CoroutineEx.waitForSeconds(0.1f);
 
-                            }
-                        }
-                        else
-                            baseLock.Kill();
-                    }
+                LockConfig lockConfig = GetLockConfigForPrefab(entity.ShortPrefabName);
+                if (entity == null || lockConfig == null)
+                    continue;
+
+                BaseLock baseLock = GetEntityLock(entity);
+                if (baseLock == null)
+                    continue;
+    
+                bool shouldRemoveLock = false;
+
+                if (baseLock is CodeLock && !lockConfig.AllowCodeLockDeployment)
+                {
+                    shouldRemoveLock = true;
+                }
+                else if (baseLock is KeyLock && !lockConfig.AllowKeyLockDeployment)
+                {
+                    shouldRemoveLock = true;
                 }
 
-                yield return CoroutineEx.waitForSeconds(0.1f);
+                if (shouldRemoveLock)
+                {
+                    if (entity.OwnerID != 0)
+                    {
+                        BasePlayer ownerPlayer = FindPlayerById(entity.OwnerID);
+                        if (ownerPlayer != null && PermissionUtil.HasPermission(ownerPlayer, PermissionUtil.BYPASS))
+                            continue;
+                    }
+                    baseLock.Kill();
+                }        
             }
         }
 
-        #endregion Functions
+        #endregion Locks Removal
 
         #region Helper Functions
+
+        private LockConfig GetLockConfigForPrefab(string prefabName)
+        {
+            foreach (var group in _config.EntityGroups)
+            {
+                if (group.PrefabShortNames.Contains(prefabName))
+                    return group;
+            }
+            return null;
+        }
 
         private static BaseLock GetEntityLock(BaseEntity entity)
         {
@@ -285,7 +337,6 @@ namespace Oxide.Plugins
 
         private class Lang
         {
-            public const string UnlockableEntity = "UnlockableEntity";
             public const string DeployCodeLockBlocked = "DeployCodeLockBlocked";
             public const string DeployKeyLockBlocked = "DeployKeyLockBlocked";
         }
@@ -294,7 +345,6 @@ namespace Oxide.Plugins
         {
             lang.RegisterMessages(new Dictionary<string, string>
             {
-                [Lang.UnlockableEntity] = "Deploying locks on this entity type is blocked.",
                 [Lang.DeployCodeLockBlocked] = "Code locks cannot be deployed on this entity.",
                 [Lang.DeployKeyLockBlocked] = "Key locks cannot be deployed on this entity.",
             }, this, "en");
