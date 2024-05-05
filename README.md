@@ -1,6 +1,6 @@
 This plugin prevents players from placing locks on entities like doors, boxes, tool cupboards, and others specified in the config. It also allows you to block the deployment of either type of lock—key or code lock—separately. Once loaded, the plugin will review all existing locked entities on the server to determine if their locks should be removed.
 
-[Demonstration]()
+[Demonstration](https://www.youtube.com/watch?v=V20BC1DWyW4)
 
 -----------------
 
@@ -13,18 +13,34 @@ This plugin prevents players from placing locks on entities like doors, boxes, t
 
 ```json
 {
-  "Version": "2.0.0",
+  "Version": "3.0.0",
   "Remove Locks On Startup": false,
-  "Allow Code Lock Deployment": false,
-  "Allow Key Lock Deployment": false,
-  "Unlockable Entities": [
-    "fridge.deployed",
-    "box.wooden.large",
-    "cupboard.tool.deployed",
-    "wall.frame.garagedoor",
-    "door.hinged.metal",
-    "locker.deployed",
-    "woodbox_deployed"
+  "Entity Groups": [
+    {
+      "Prefab Short Names": [
+        "cupboard.tool.deployed",
+        "box.wooden.large",
+        "woodbox_deployed"
+      ],
+      "Allow Code Lock Deployment": false,
+      "Allow Key Lock Deployment": true
+    },
+    {
+      "Prefab Short Names": [
+        "wall.frame.garagedoor",
+        "door.hinged.metal"
+      ],
+      "Allow Code Lock Deployment": true,
+      "Allow Key Lock Deployment": false
+    },
+    {
+      "Prefab Short Names": [
+        "locker.deployed",
+        "fridge.deployed"
+      ],
+      "Allow Code Lock Deployment": true,
+      "Allow Key Lock Deployment": true
+    }
   ]
 }
 ```
@@ -35,7 +51,6 @@ This plugin prevents players from placing locks on entities like doors, boxes, t
 
 ```json
 {
-  "UnlockableEntity": "Deploying locks on this entity type is blocked.",
   "DeployCodeLockBlocked": "Code locks cannot be deployed on this entity.",
   "DeployKeyLockBlocked": "Key locks cannot be deployed on this entity."
 }
